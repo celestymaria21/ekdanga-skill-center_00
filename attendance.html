@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ekdanga Center — Attendance & MIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F1E7; --panel: #FFFFFF; --ink: #241F1C; --ink-soft: #5B5348;
+    --ink-faint: #8A8172; --indigo: #223A5E; --indigo-soft: #EFF2F6;
+    --mustard: #C98A22; --leaf: #3F6B49; --line: #DCD0B8; --warn-bg: #FBECE8; --warn: #B4432A;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font-family: 'Work Sans', Arial, sans-serif; display: flex; min-height: 100vh; }
+  h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; margin: 0; }
+  button, input { font-family: inherit; }
+  button { cursor: pointer; }
+
+  /* ---- Login screen ---- */
+  #loginScreen {
+    flex: 1; display: flex; align-items: center; justify-content: center; min-height: 100vh;
+  }
+  .login-box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 36px 34px; width: 320px; }
+  .login-box h2 { font-size: 1.3rem; margin-bottom: 4px; }
+  .login-box .sub { color: var(--ink-soft); font-size: 0.86rem; margin-bottom: 22px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 5px; }
+  .field input {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px;
+    background: var(--bg); color: var(--ink); font-size: 0.92rem;
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 16px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel);
+    color: var(--ink); font-size: 0.88rem; font-weight: 500;
+  }
+  .btn-primary { background: var(--indigo); color: #fff; border-color: var(--indigo); width: 100%; }
+  .login-error { color: var(--warn); font-size: 0.82rem; margin-top: 12px; min-height: 1em; }
+  .login-note { font-size: 0.76rem; color: var(--ink-faint); margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+
+  /* ---- App shell (same design as before) ---- */
+  #appShell { display: none; flex: 1; }
+  .sidebar { width: 240px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 20px 0; }
+  .brand { padding: 0 20px 16px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  .brand .t { font-size: 1rem; font-weight: 600; font-family: 'Fraunces', serif; }
+  .brand .s { font-size: 0.76rem; color: var(--ink-faint); margin-top: 2px; }
+  .tabs { display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
+  .tab-btn { text-align: left; padding: 10px 12px; border: none; background: none; border-radius: 7px; color: var(--ink-soft); font-size: 0.9rem; font-weight: 500; }
+  .tab-btn.active { background: var(--indigo-soft); color: var(--indigo); }
+  .day-list { flex: 1; overflow-y: auto; padding: 14px 12px 0; margin-top: 8px; border-top: 1px solid var(--line); }
+  .day-list-label { font-size: 0.74rem; color: var(--ink-faint); padding: 6px 4px 8px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .day-item { width: 100%; text-align: left; padding: 9px 10px; border: none; background: none; border-radius: 7px; color: var(--ink); font-size: 0.87rem; display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .day-item:hover { background: var(--indigo-soft); }
+  .day-item.active { background: var(--indigo); color: #fff; }
+  .day-item .pct { font-size: 0.76rem; color: var(--ink-faint); }
+  .day-item.active .pct { color: #DCEAF3; }
+  .sidebar-foot { padding: 14px 20px 0; display: flex; flex-direction: column; gap: 8px; }
+  .btn-block { width: 100%; }
+  .btn-ghost { background: none; }
+
+  main { flex: 1; padding: 28px 34px 60px; max-width: 1180px; overflow-x: hidden; }
+  .topbar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; flex-wrap: wrap; gap: 14px; }
+  .topbar .meta { color: var(--ink-soft); font-size: 0.88rem; margin-top: 4px; }
+  .save-flag { font-size: 0.78rem; color: var(--ink-faint); }
+
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card .label { font-size: 0.78rem; color: var(--ink-faint); margin-bottom: 6px; }
+  .card .num { font-size: 1.5rem; font-weight: 600; font-family: 'Fraunces', serif; }
+
+  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .chip { padding: 6px 13px; border-radius: 20px; border: 1px solid var(--line); background: var(--panel); font-size: 0.82rem; color: var(--ink-soft); }
+  .chip.active { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+
+  .roster-table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .roster-table th { text-align: left; font-size: 0.74rem; font-weight: 600; color: var(--ink-faint); padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .roster-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+  .roster-table tr:last-child td { border-bottom: none; }
+  .roster-table tr.absent td { background: var(--warn-bg); }
+  .roster-table td:first-child { width: 30px; color: var(--ink-faint); font-size: 0.8rem; }
+  .course-pill { font-size: 0.74rem; padding: 2px 8px; border-radius: 10px; background: var(--indigo-soft); color: var(--indigo); }
+  .status-toggle { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); font-size: 0.8rem; color: var(--leaf); font-weight: 500; }
+  .status-toggle.absent { background: var(--warn); color: #fff; border-color: var(--warn); }
+
+  .ov-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
+  .panel-box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; margin-bottom: 18px; }
+  .panel-box h3 { font-size: 0.98rem; margin-bottom: 14px; font-family: 'Work Sans'; font-weight: 600; }
+  .bar-row { margin-bottom: 12px; }
+  .bar-row .bl { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; color: var(--ink-soft); }
+  .bar-track { height: 8px; background: var(--indigo-soft); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--indigo); border-radius: 3px; }
+  .attend-list { list-style: none; margin: 0; padding: 0; }
+  .attend-list li { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 0.87rem; }
+  .attend-list li:last-child { border-bottom: none; }
+  .attend-list .cnt { color: var(--warn); font-weight: 600; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(20,20,20,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .modal-box { background: var(--panel); border-radius: 12px; padding: 24px 26px; width: 300px; border: 1px solid var(--line); }
+  .modal-box h3 { margin: 0 0 16px; font-size: 1.05rem; font-family: 'Work Sans'; }
+  .modal-label { display: block; font-size: 0.82rem; color: var(--ink-soft); margin-bottom: 6px; }
+  .modal-date { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); font-family: inherit; font-size: 0.92rem; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  .modal-error { color: var(--warn); font-size: 0.8rem; margin-top: 10px; min-height: 1em; }
+
+  @media (max-width: 900px) {
+    #appShell { flex-direction: column; }
+    .sidebar { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; padding: 12px; }
+    .brand, .sidebar-foot, .tabs, .day-list-label { display: none; }
+    .day-list { display: flex; padding: 0; border-top: none; }
+    .day-item { width: auto; white-space: nowrap; }
+    main { padding: 18px; }
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .ov-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>Staff sign-in</h2>
+    <div class="sub">Ekdanga Center — Attendance &amp; MIS</div>
+    <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" placeholder="you@ekdangacenter.org"></div>
+    <div class="field"><label for="loginPass">Password</label><input type="password" id="loginPass"></div>
+    <button class="btn btn-primary" id="loginBtn">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-note">Access is limited to staff accounts created for this center. Contact whoever manages this site to get an account.</div>
+  </div>
+</div>
+
+<div id="appShell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="t">Ekdanga Center</div>
+      <div class="s">Attendance &amp; MIS — staff only</div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="attendance">Attendance</button>
+      <button class="tab-btn" data-tab="overview">MIS Dashboard</button>
+    </div>
+    <div class="day-list" id="dayList"></div>
+    <div class="sidebar-foot">
+      <button class="btn btn-primary btn-block" id="newDayBtn">+ New day</button>
+      <button class="btn btn-ghost btn-block" id="logoutBtn">Sign out</button>
+    </div>
+  </aside>
+
+  <main>
+    <div id="attendanceView">
+      <div class="topbar">
+        <div><h1 id="dayTitle">Loading…</h1><div class="meta" id="daySub"></div></div>
+        <span class="save-flag" id="saveFlag"></span>
+      </div>
+      <div class="cards" id="cardRow"></div>
+      <div class="filter-row" id="filterRow"></div>
+      <table class="roster-table">
+        <thead><tr><th>#</th><th>Name</th><th>Course</th><th>Gender</th><th>Status</th></tr></thead>
+        <tbody id="rosterBody"></tbody>
+      </table>
+    </div>
+
+    <div id="overviewView" style="display:none;">
+      <div class="topbar"><div><h1>MIS Dashboard</h1><div class="meta">Across every day recorded so far</div></div><button class="btn btn-primary" id="exportBtn">Export CSV</button></div>
+      <div class="cards" id="ovCards"></div>
+      <div class="ov-grid">
+        <div>
+          <div class="panel-box"><h3>Attendance rate by course</h3><div id="ovCourseBars"></div></div>
+          <div class="panel-box"><h3>Attendance rate by gender</h3><div id="ovGenderBars"></div></div>
+        </div>
+        <div class="panel-box"><h3>Most absences</h3><ul class="attend-list" id="ovAttend"></ul></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="newDayOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h3>Add a new day</h3>
+    <label class="modal-label" for="newDayInput">Date</label>
+    <input type="date" id="newDayInput" class="modal-date">
+    <div class="modal-actions">
+      <button class="btn" id="newDayCancel">Cancel</button>
+      <button class="btn btn-primary" id="newDayConfirm">Add day</button>
+    </div>
+    <div class="modal-error" id="newDayError"></div>
+  </div>
+</div>
+
+<!-- ======================================================================
+  SETUP REQUIRED — read this before deploying:
+
+  1. Go to https://console.firebase.google.com → Add project (free "Spark" plan).
+  2. In the project, click the web icon (</>) to register a web app,
+     and copy the firebaseConfig object it gives you into FIREBASE_CONFIG below.
+  3. In the left menu: Build → Firestore Database → Create database
+     (start in production mode) → pick any region.
+  4. In Firestore's "Rules" tab, paste:
+
+       rules_version = '2';
+       service cloud.firestore {
+         match /databases/{database}/documents {
+           match /attendance/{doc} {
+             allow read, write: if request.auth != null;
+           }
+         }
+       }
+
+     then click Publish.
+  5. In the left menu: Build → Authentication → Get started →
+     enable the "Email/Password" sign-in method.
+  6. Still in Authentication → Users tab → Add user for each staff
+     member who should have access (their email + a password you set).
+============================================================================ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, doc, setDoc, collection, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ---- 1. PASTE YOUR FIREBASE CONFIG HERE ----
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAkef-Ed5V8vR3LvmK_SiEarkRbJe8LKdI",
+    authDomain: "ekdanga-skill-center.firebaseapp.com",
+    projectId: "ekdanga-skill-center",
+    storageBucket: "ekdanga-skill-center.firebasestorage.app",
+    messagingSenderId: "781327746688",
+    appId: "1:781327746688:web:896ffc7568d9eb85b94865",
+    measurementId: "G-V1BP05FCP1"
+  };
+
+  const app = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  const dbFs = getFirestore(app);
+
+  const ROSTER = [
+    ["s01","SAMINA KHATOON","FEMALE","SEWING TECHNOLOGY"],["s02","AMIT KUMAR","MALE","BASIC COMPUTER"],
+    ["s03","NAITIK VISHWAKARMA","MALE","BASIC COMPUTER"],["s04","NIRAJ KUSHWAHA","MALE","BASIC COMPUTER"],
+    ["s05","KRITIKA VISHWAKARMA","FEMALE","BASIC COMPUTER"],["s06","ANJALI YADAV","FEMALE","SEWING TECHNOLOGY"],
+    ["s07","ARPITA KUSHWAHA","FEMALE","SEWING TECHNOLOGY"],["s08","KM. ARADHANA","FEMALE","SEWING TECHNOLOGY"],
+    ["s09","RINKI KUSHWAHA","FEMALE","SEWING TECHNOLOGY"],["s10","PINKI KUSHWAHA","FEMALE","SEWING TECHNOLOGY"],
+    ["s11","ANSHU KUSHWAHA","FEMALE","BASIC COMPUTER"],["s12","KHUSHI KUMARI GOND","FEMALE","BASIC COMPUTER"],
+    ["s13","PRIYA","FEMALE","BASIC COMPUTER"],["s14","PRATIBHA KUSHWAHA","FEMALE","BASIC COMPUTER"],
+    ["s15","ANNU KUSHWAHA","FEMALE","BASIC COMPUTER"],["s16","ANSHIKA KUSHWAHA","FEMALE","BASIC COMPUTER"],
+    ["s17","RAGANI SHARMA","FEMALE","SEWING TECHNOLOGY"],["s18","SUDHANSHU YADAV","MALE","BASIC COMPUTER"],
+    ["s19","KM. SANGEETA SHARMA","FEMALE","SEWING TECHNOLOGY"],["s20","SADHANA KUSHWAHA","FEMALE","SEWING TECHNOLOGY"],
+    ["s21","SANJANA KUSHWAHA","FEMALE","BASIC COMPUTER"],["s22","NANDANI PANDEY","FEMALE","BASIC COMPUTER"],
+    ["s23","SARIKA MAURYA","FEMALE","BASIC COMPUTER"],["s24","SANJU YADAV","FEMALE","SEWING TECHNOLOGY"],
+    ["s25","JYOTI CHAURASIYA","FEMALE","BASIC COMPUTER"],["s26","GUDIYA YADAV","FEMALE","BASIC COMPUTER"],
+    ["s27","SADHANA KUMARI","FEMALE","BASIC COMPUTER"],["s28","PRITEE YADAV","FEMALE","SEWING TECHNOLOGY"],
+    ["s29","KM. SAVITA YADAV","FEMALE","BASIC COMPUTER"],["s30","MANJU KUMARI","FEMALE","SEWING TECHNOLOGY"],
+    ["s31","AKSHAY KUMAR","MALE","BASIC COMPUTER"],["s32","MUSKAN","FEMALE","SEWING TECHNOLOGY"],
+    ["s33","MANISHA YADAV","FEMALE","BASIC COMPUTER"],["s34","PAWAN","MALE","BASIC COMPUTER"],
+    ["s35","ARCHANA","FEMALE","SEWING TECHNOLOGY"],["s36","ANTIMA KUMARI","FEMALE","SEWING TECHNOLOGY"],
+    ["s37","ANKITA YADAV","FEMALE","SEWING TECHNOLOGY"],["s38","JIYA SHAHI","FEMALE","BASIC COMPUTER"],
+    ["s39","PRAMILA KUMARI KUSHWAHA","FEMALE","SEWING TECHNOLOGY"],["s40","PRITI KUMARI","FEMALE","BASIC COMPUTER"],
+    ["s41","PRIYANSHU KUSHWAHA","MALE","BASIC COMPUTER"],["s42","KAJAL KUMARI","FEMALE","SEWING TECHNOLOGY"],
+    ["s43","DIVYANSHU SHAHI","MALE","BASIC COMPUTER"],["s44","GUDIYA SHARMA","FEMALE","BASIC COMPUTER"],
+    ["s45","NEELAM","FEMALE","BASIC COMPUTER"],["s46","NIRJALA","FEMALE","BASIC COMPUTER"]
+  ].map(([id, name, gender, course]) => ({ id, name, gender, course }));
+
+  let days = {};
+  let selectedDate = null;
+  let activeTab = "attendance";
+  let activeFilter = "ALL";
+  let saveTimer = null;
+  let unsub = null;
+
+  const $ = (sel) => document.querySelector(sel);
+
+  function fmtDisplay(key) { const [y,m,d] = key.split("-"); return `${d}-${m}-${y}`; }
+  function sortedKeys() { return Object.keys(days).sort((a,b) => b.localeCompare(a)); }
+  function blankRecords() { const r = {}; ROSTER.forEach(s => r[s.id] = "present"); return r; }
+
+  function dayStats(records) {
+    let present = 0, absent = 0;
+    ROSTER.forEach(s => { if ((records[s.id] || "present") === "absent") absent++; else present++; });
+    return { present, absent, total: ROSTER.length, pct: Math.round((present / ROSTER.length) * 100) };
+  }
+
+  function renderDayList() {
+    const el = $("#dayList");
+    el.innerHTML = `<div class="day-list-label">Recorded days</div>`;
+    sortedKeys().forEach((key) => {
+      const st = dayStats(days[key].records);
+      const btn = document.createElement("button");
+      btn.className = "day-item" + (key === selectedDate ? " active" : "");
+      btn.innerHTML = `<span>${fmtDisplay(key)}</span><span class="pct">${st.pct}%</span>`;
+      btn.addEventListener("click", () => { selectedDate = key; renderAll(); });
+      el.appendChild(btn);
+    });
+    if (sortedKeys().length === 0) el.innerHTML += `<div style="padding:16px 8px;color:var(--ink-faint);font-size:0.85rem;">No days yet.</div>`;
+  }
+
+  function renderFilters() {
+    const el = $("#filterRow");
+    const courses = ["ALL", "BASIC COMPUTER", "SEWING TECHNOLOGY"];
+    el.innerHTML = courses.map(c => `<button class="chip ${c===activeFilter?"active":""}" data-c="${c}">${c === "ALL" ? "All courses" : c}</button>`).join("");
+    el.querySelectorAll(".chip").forEach(btn => btn.addEventListener("click", () => { activeFilter = btn.dataset.c; renderAttendance(); }));
+  }
+
+  function renderAttendance() {
+    if (!selectedDate || !days[selectedDate]) {
+      $("#dayTitle").textContent = "No day selected";
+      $("#daySub").textContent = "Add a new day to get started.";
+      $("#cardRow").innerHTML = ""; $("#rosterBody").innerHTML = "";
+      return;
+    }
+    const d = days[selectedDate];
+    const st = dayStats(d.records);
+    $("#dayTitle").textContent = fmtDisplay(selectedDate);
+    $("#daySub").textContent = ROSTER.length + " students on the roster";
+    $("#cardRow").innerHTML = `
+      <div class="card"><div class="label">Present</div><div class="num">${st.present}</div></div>
+      <div class="card"><div class="label">Absent</div><div class="num">${st.absent}</div></div>
+      <div class="card"><div class="label">Attendance rate</div><div class="num">${st.pct}%</div></div>
+      <div class="card"><div class="label">Enrolled</div><div class="num">${st.total}</div></div>
+    `;
+    renderFilters();
+    const list = ROSTER.filter(s => activeFilter === "ALL" || s.course === activeFilter);
+    const body = $("#rosterBody");
+    body.innerHTML = "";
+    list.forEach((s, idx) => {
+      const status = d.records[s.id] || "present";
+      const tr = document.createElement("tr");
+      if (status === "absent") tr.classList.add("absent");
+      tr.innerHTML = `
+        <td>${idx + 1}</td><td>${s.name}</td>
+        <td><span class="course-pill">${s.course === "BASIC COMPUTER" ? "Computer" : "Sewing"}</span></td>
+        <td>${s.gender === "FEMALE" ? "F" : "M"}</td>
+        <td><button class="status-toggle ${status === "absent" ? "absent" : ""}" data-id="${s.id}">${status === "absent" ? "Absent" : "Present"}</button></td>`;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll(".status-toggle").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        d.records[id] = (d.records[id] || "present") === "present" ? "absent" : "present";
+        renderAttendance(); renderDayList(); scheduleSave();
+      });
+    });
+  }
+
+  function renderOverview() {
+    const keys = Object.keys(days);
+    const courseStats = { "BASIC COMPUTER": { p: 0, t: 0 }, "SEWING TECHNOLOGY": { p: 0, t: 0 } };
+    const genderStats = { "FEMALE": { p: 0, t: 0 }, "MALE": { p: 0, t: 0 } };
+    const absences = {}; ROSTER.forEach(s => absences[s.id] = 0);
+    let totalPresent = 0, totalSlots = 0;
+    keys.forEach((key) => {
+      const rec = days[key].records;
+      ROSTER.forEach((s) => {
+        const status = rec[s.id] || "present";
+        totalSlots++; courseStats[s.course].t++; genderStats[s.gender].t++;
+        if (status === "present") { totalPresent++; courseStats[s.course].p++; genderStats[s.gender].p++; }
+        else absences[s.id]++;
+      });
+    });
+    const overallPct = totalSlots ? Math.round((totalPresent / totalSlots) * 100) : 0;
+    $("#ovCards").innerHTML = `
+      <div class="card"><div class="label">Days recorded</div><div class="num">${keys.length}</div></div>
+      <div class="card"><div class="label">Enrolled</div><div class="num">${ROSTER.length}</div></div>
+      <div class="card"><div class="label">Overall attendance</div><div class="num">${overallPct}%</div></div>
+      <div class="card"><div class="label">Total present-days</div><div class="num">${totalPresent}</div></div>
+    `;
+    $("#ovCourseBars").innerHTML = Object.entries(courseStats).map(([name, v]) => {
+      const pct = v.t ? Math.round((v.p / v.t) * 100) : 0;
+      return `<div class="bar-row"><div class="bl"><span>${name === "BASIC COMPUTER" ? "Basic Computer" : "Sewing Technology"}</span><span>${pct}%</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></div>`;
+    }).join("");
+    $("#ovGenderBars").innerHTML = Object.entries(genderStats).map(([name, v]) => {
+      const pct = v.t ? Math.round((v.p / v.t) * 100) : 0;
+      return `<div class="bar-row"><div class="bl"><span>${name === "FEMALE" ? "Female" : "Male"}</span><span>${pct}%</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></div>`;
+    }).join("");
+    const rows = ROSTER.map(s => ({ name: s.name, n: absences[s.id] })).filter(r => r.n > 0)
+      .sort((a, b) => b.n - a.n).slice(0, 10)
+      .map(r => `<li><span>${r.name}</span><span class="cnt">${r.n}</span></li>`).join("");
+    $("#ovAttend").innerHTML = rows || `<li>No absences recorded yet</li>`;
+  }
+
+  function renderAll() { renderDayList(); if (activeTab === "attendance") renderAttendance(); else renderOverview(); }
+
+  function exportCSV() {
+    const keys = sortedKeys();
+    if (keys.length === 0) { alert("No attendance days recorded yet."); return; }
+    const header = ["Name", "Gender", "Course", ...keys.map(fmtDisplay)];
+    const rows = [header];
+    ROSTER.forEach((s) => {
+      const row = [s.name, s.gender, s.course === "BASIC COMPUTER" ? "Basic Computer" : "Sewing Technology"];
+      keys.forEach((k) => {
+        const status = (days[k].records[s.id] || "present");
+        row.push(status === "present" ? "P" : "A");
+      });
+      rows.push(row);
+    });
+    const totalsRow = ["", "", "Present count"];
+    keys.forEach((k) => {
+      const st = dayStats(days[k].records);
+      totalsRow.push(st.present);
+    });
+    rows.push(totalsRow);
+
+    const csv = rows.map((r) => r.map((cell) => {
+      const s = String(cell);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(",")).join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ekdanga-attendance.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  $("#exportBtn") && $("#exportBtn").addEventListener("click", exportCSV);
+
+  document.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => {
+    activeTab = b.dataset.tab;
+    document.querySelectorAll(".tab-btn").forEach(x => x.classList.toggle("active", x === b));
+    $("#attendanceView").style.display = activeTab === "attendance" ? "" : "none";
+    $("#overviewView").style.display = activeTab === "overview" ? "" : "none";
+    renderAll();
+  }));
+
+  const newDayOverlay = $("#newDayOverlay");
+  const newDayInput = $("#newDayInput");
+  function openNewDayModal() {
+    $("#newDayError").textContent = "";
+    const keys = sortedKeys();
+    let def = new Date();
+    if (keys.length) { const d = new Date(keys[0] + "T00:00:00"); d.setDate(d.getDate() + 1); def = d; }
+    newDayInput.value = def.toISOString().slice(0, 10);
+    newDayOverlay.style.display = "flex";
+    setTimeout(() => newDayInput.focus(), 0);
+  }
+  function closeNewDayModal() { newDayOverlay.style.display = "none"; }
+  async function confirmNewDay() {
+    const val = newDayInput.value;
+    if (!val) { $("#newDayError").textContent = "Pick a date first."; return; }
+    if (days[val]) { selectedDate = val; closeNewDayModal(); renderAll(); return; }
+    days[val] = { records: blankRecords() };
+    selectedDate = val;
+    closeNewDayModal(); renderAll();
+    scheduleSave(val);
+  }
+  $("#newDayBtn").addEventListener("click", openNewDayModal);
+  $("#newDayCancel").addEventListener("click", closeNewDayModal);
+  $("#newDayConfirm").addEventListener("click", confirmNewDay);
+  newDayOverlay.addEventListener("click", (e) => { if (e.target === newDayOverlay) closeNewDayModal(); });
+  newDayInput.addEventListener("keydown", (e) => { if (e.key === "Enter") confirmNewDay(); });
+
+  function scheduleSave(forceKey) {
+    $("#saveFlag").textContent = "Saving…";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveDay(forceKey || selectedDate), 500);
+  }
+  async function saveDay(key) {
+    if (!key || !days[key]) return;
+    try {
+      await setDoc(doc(dbFs, "attendance", key), days[key]);
+      $("#saveFlag").textContent = "Saved";
+      setTimeout(() => { if ($("#saveFlag").textContent === "Saved") $("#saveFlag").textContent = ""; }, 1500);
+    } catch (err) {
+      $("#saveFlag").textContent = "Could not save — check connection";
+      console.error(err);
+    }
+  }
+
+  function subscribeDays() {
+    unsub = onSnapshot(collection(dbFs, "attendance"), (snap) => {
+      const next = {};
+      snap.forEach((d) => { next[d.id] = d.data(); });
+      days = next;
+      if (!selectedDate || !days[selectedDate]) selectedDate = sortedKeys()[0] || null;
+      renderAll();
+    }, (err) => console.error("subscribe error", err));
+  }
+
+  // ---- Auth wiring ----
+  $("#loginBtn").addEventListener("click", async () => {
+    const email = $("#loginEmail").value.trim();
+    const pass = $("#loginPass").value;
+    $("#loginError").textContent = "";
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+      $("#loginError").textContent = "Sign-in failed — check email and password.";
+      console.error(err);
+    }
+  });
+  $("#loginPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#loginBtn").click(); });
+
+  $("#logoutBtn").addEventListener("click", async () => {
+    if (unsub) unsub();
+    await signOut(auth);
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      $("#loginScreen").style.display = "none";
+      $("#appShell").style.display = "flex";
+      subscribeDays();
+    } else {
+      $("#loginScreen").style.display = "flex";
+      $("#appShell").style.display = "none";
+      days = {}; selectedDate = null;
+    }
+  });
+</script>
+</body>
+</html>
